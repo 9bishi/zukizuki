@@ -20,20 +20,22 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
   @override
   void initState() {
     super.initState();
-    // 获取视频的资源和质量信息
     _initializeVideoPlayer();
   }
 
   Future<void> _initializeVideoPlayer() async {
-    // 获取视频资源的 URL（假设这里是从API获取的视频文件路径）
+    // 获取视频资源
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
     final videoDetails = await videoProvider.fetchVideoDetails(widget.videoId);
-    final videoFileUrl = await videoProvider.fetchVideoFileUrl(videoDetails['resources'][0]['id']);
+    final resourceId = videoDetails['resources'][0]['id'];
+    final quality = "854x480_900k";  // 你可以根据需要更改视频质量
 
-    // 创建视频播放器控制器
-    _controller = VideoPlayerController.network(videoFileUrl)
+    // 获取视频文件 M3U8 内容
+    final m3u8Content = await videoProvider.fetchVideoFile(resourceId, quality);
+
+    // 使用 M3U8 内容创建视频播放器控制器
+    _controller = VideoPlayerController.network(m3u8Content)
       ..initialize().then((_) {
-        // 确保视频在初始化后可以播放
         setState(() {});
       });
   }
@@ -54,53 +56,35 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (snapshot.hasData) {
             final video = snapshot.data!;
-
-            // 视频初始化完成后显示视频播放器
             return ListView(
               children: [
-                Image.network(getImageUrl(video['cover'] ?? '')),
+                Image.network(video['cover'] ?? ''),
                 ListTile(
                   title: Text(video['title']),
                   subtitle: Text(video['desc']),
                 ),
-                ListTile(
-                  title: Text('Duration: ${video['duration']}'),
-                  subtitle: Text('Created At: ${video['createdAt']}'),
-                ),
-                const ListTile(
-                  title: Text('Tags: '),
-                  subtitle: Text('Video Tags'),
-                ),
-                ListTile(
-                  title: Text('Resources'),
-                  subtitle: Text(video['resources'].toString()),
-                ),
-                // 视频播放器部分
                 _controller.value.isInitialized
                     ? AspectRatio(
                         aspectRatio: _controller.value.aspectRatio,
                         child: VideoPlayer(_controller),
                       )
                     : const Center(child: CircularProgressIndicator()),
-                // 播放控制按钮
-                _controller.value.isInitialized
-                    ? IconButton(
-                        icon: Icon(
-                          _controller.value.isPlaying
-                              ? Icons.pause
-                              : Icons.play_arrow,
-                        ),
-                        onPressed: () {
-                          setState(() {
-                            if (_controller.value.isPlaying) {
-                              _controller.pause();
-                            } else {
-                              _controller.play();
-                            }
-                          });
-                        },
-                      )
-                    : const SizedBox.shrink(),
+                IconButton(
+                  icon: Icon(
+                    _controller.value.isPlaying
+                        ? Icons.pause
+                        : Icons.play_arrow,
+                  ),
+                  onPressed: () {
+                    setState(() {
+                      if (_controller.value.isPlaying) {
+                        _controller.pause();
+                      } else {
+                        _controller.play();
+                      }
+                    });
+                  },
+                ),
               ],
             );
           } else {
@@ -114,6 +98,6 @@ class _VideoDetailScreenState extends State<VideoDetailScreen> {
   @override
   void dispose() {
     super.dispose();
-    _controller.dispose(); // 释放视频播放器资源
+    _controller.dispose();
   }
 }
