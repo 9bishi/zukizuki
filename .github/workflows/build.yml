@@ -1,0 +1,48 @@
+name: Flutter CI
+
+# 触发器，可以根据需要更改为其他事件，如 push, pull_request, etc.
+on:
+  push:
+    branches:
+      - main # 设置为主分支，触发代码推送时自动运行
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  # 设置工作流的执行环境
+  build:
+    runs-on: ubuntu-latest # 使用最新版本的 Ubuntu 操作系统
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        flutter-version: 'stable'  # 安装最新稳定版本的 Flutter SDK
+
+    - name: Install dependencies
+      run: |
+        flutter pub get  # 安装 Flutter 项目的依赖
+
+    - name: Run tests
+      run: |
+        flutter test  # 运行 Flutter 的单元测试
+
+    - name: Build APK
+      run: |
+        flutter build apk --release  # 构建 APK 发布版本
+
+    - name: Build iOS (如果需要的话)
+      run: |
+        flutter build ios --release  # 如果你需要构建 iOS 应用，也可以启用此步骤
+
+    - name: Upload APK Artifact
+      if: success()  # 只有在构建成功时才上传
+      uses: actions/upload-artifact@v3
+      with:
+        name: app-release-apk
+        path: build/app/outputs/flutter-apk/app-release.apk  # 上传构建的 APK 文件
+
