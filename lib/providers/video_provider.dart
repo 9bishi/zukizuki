@@ -2,93 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../api/video_api.dart';
-class VideoProvider with ChangeNotifier {
-  bool isLoading = false;
-  List<dynamic> videos = [];
-  Map<String, dynamic> videoDetails = {};
 
+class VideoProvider with ChangeNotifier {
+  /// 获取视频文件（M3U8 格式）
   Future<String> fetchVideoFile(int resourceId, String quality) async {
     final url = Uri.parse(
         'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
 
-    debugPrint("Fetching video file with resourceId: $resourceId, quality: $quality");
-
     try {
       final response = await http.get(url);
 
       if (response.statusCode == 200) {
-        final m3u8FileContent = response.body;
-        debugPrint("M3U8 file content fetched successfully");
-        return m3u8FileContent;
+        return response.body; // 返回 M3U8 文件内容
       } else {
-        debugPrint("Failed to fetch video file. Status code: ${response.statusCode}");
         throw Exception('Failed to load video file');
       }
     } catch (error) {
-      debugPrint("Error fetching video file: $error");
+      print('Error fetching video file: $error');
       return '';
     }
   }
 
-  Future<String> fetchVideoSlice(String fileKey) async {
-    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/slice/文件?key=$fileKey');
-
-    debugPrint("Fetching video slice with key: $fileKey");
-
-    try {
-      final response = await http.get(url);
-
-      if (response.statusCode == 200) {
-        debugPrint("Video slice fetched successfully");
-        return response.body;
-      } else {
-        debugPrint("Failed to fetch video slice. Status code: ${response.statusCode}");
-        throw Exception('Failed to load video slice');
-      }
-    } catch (error) {
-      debugPrint("Error fetching video slice: $error");
-      return '';
-    }
+  /// 解析 M3U8 文件，提取视频切片 URL
+  List<String> parseM3U8(String m3u8Content) {
+    final lines = m3u8Content.split('\n');
+    return lines.where((line) => line.endsWith('.ts')).toList();
   }
 
-  Future<void> fetchVideos() async {
-    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getHotVideo?page=1&pageSize=30');
-    debugPrint("Fetching videos from $url");
-    isLoading = true;
-    notifyListeners();
-
-    try {
-      final response = await http.get(url);
-      final data = json.decode(response.body);
-      if (data['code'] == 200) {
-        videos = data['data']['videos'];
-        debugPrint("Videos fetched successfully: ${videos.length} videos found");
-      } else {
-        debugPrint("Failed to fetch videos. API response: ${data['msg']}");
-      }
-    } catch (error) {
-      debugPrint("Error fetching videos: $error");
-    }
-    isLoading = false;
-    notifyListeners();
+  /// 获取视频切片的完整 URL
+  String getSliceUrl(String fileName) {
+    final baseUrl = 'https://api.zukizuki.org/api/v1/video/slice';
+    return '$baseUrl/$fileName';
   }
 
-  Future<Map<String, dynamic>> fetchVideoDetails(int videoId) async {
-    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getVideoById?vid=$videoId');
-    debugPrint("Fetching video details for videoId: $videoId");
-
+  /// 示例方法：获取第一个视频切片 URL
+  Future<String?> fetchFirstSliceUrl(int resourceId, String quality) async {
     try {
-      final response = await http.get(url);
-      final data = json.decode(response.body);
-      if (data['code'] == 200) {
-        videoDetails = data['data']['video'];
-        debugPrint("Video details fetched successfully: ${videoDetails['title']}");
+      final m3u8Content = await fetchVideoFile(resourceId, quality);
+      final sliceFiles = parseM3U8(m3u8Content);
+
+      if (sliceFiles.isNotEmpty) {
+        return getSliceUrl(sliceFiles.first); // 返回第一个切片的完整 URL
       } else {
-        debugPrint("Failed to fetch video details. API response: ${data['msg']}");
+        throw Exception('No slice files found in M3U8 content.');
       }
     } catch (error) {
-      debugPrint("Error fetching video details: $error");
+      print('Error fetching first slice URL: $error');
+      return null;
     }
-    return videoDetails;
   }
 }
