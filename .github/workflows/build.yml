@@ -1,48 +1,58 @@
-name: Flutter CI
+name: Dart CI
 
-# 触发器，可以根据需要更改为其他事件，如 push, pull_request, etc.
 on:
   push:
-    branches:
-      - main # 设置为主分支，触发代码推送时自动运行
+    branches: 
+      - main  # 当代码推送到main分支时触发
   pull_request:
     branches:
-      - main
+      - main  # 当提交拉取请求到main分支时触发
 
 jobs:
-  # 设置工作流的执行环境
   build:
-    runs-on: ubuntu-latest # 使用最新版本的 Ubuntu 操作系统
-    
+    runs-on: ubuntu-latest  # 使用最新的 Ubuntu 虚拟机执行构建任务
+
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v3  # 检出代码
 
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
+    - name: Set up Node.js
+      uses: actions/setup-node@v3  # 设置 Node.js 环境
       with:
-        flutter-version: 'stable'  # 安装最新稳定版本的 Flutter SDK
+        node-version: '12'  # 设置 Node.js 版本为 12
 
     - name: Install dependencies
-      run: |
-        flutter pub get  # 安装 Flutter 项目的依赖
+      run: npm install  # 安装项目的 NPM 依赖
 
-    - name: Run tests
-      run: |
-        flutter test  # 运行 Flutter 的单元测试
-
-    - name: Build APK
-      run: |
-        flutter build apk --release  # 构建 APK 发布版本
-
-    - name: Build iOS (如果需要的话)
-      run: |
-        flutter build ios --release  # 如果你需要构建 iOS 应用，也可以启用此步骤
-
-    - name: Upload APK Artifact
-      if: success()  # 只有在构建成功时才上传
-      uses: actions/upload-artifact@v3
+    - name: Set up Java
+      uses: actions/setup-java@v1  # 设置 Java 环境
       with:
-        name: app-release-apk
-        path: build/app/outputs/flutter-apk/app-release.apk  # 上传构建的 APK 文件
+        java-version: '12.x'  # 设置 Java 版本为 12.x
 
+    - name: Set up Flutter
+      uses: subosito/flutter-action@v2  # 设置 Flutter 环境
+      with:
+        channel: 'stable'  # 使用 Flutter 的稳定版本
+        architecture: x64  # 使用 64 位架构
+
+    - name: Install Flutter dependencies
+      run: flutter pub get  # 安装 Flutter 项目的依赖
+
+    - name: Build Android APK
+      run: |
+        flutter build apk --release -v  # 构建 Android APK 发布版本
+        mv ./build/app/outputs/apk/release/* ./web  # 将 APK 文件移动到 web 目录
+
+    - name: Deploy APK Artifact
+      uses: actions/upload-artifact@v2  # 上传构建好的 APK 作为构建工件
+      with:
+        name: app-release
+        path: build/app/outputs/flutter-apk/app-release.apk  # 构建的 APK 文件路径
+
+    - name: Release APK
+      uses: ncipollo/release-action@v1.5.0  # 发布 APK 到 GitHub Release
+      with:
+        artifacts: "build/app/outputs/flutter-apk/*.apk"  # 需要发布的 APK 文件
+        token: ${{ secrets.GIT_TOKEN }}  # 使用 GitHub Secrets 中存储的 GitHub Token
+        commit: main  # 关联的分支
+        tag: v1.0.${{ github.run_number }}  # 使用 run_number 来生成动态版本标签
