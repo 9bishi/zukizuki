@@ -3,11 +3,10 @@ name: Dart CI
 on:
   push:
     branches: 
-      - main
-      : 
+      - main  # Trigger when code is pushed to the main branch
   pull_request:
     branches:
-      - main 
+      - main  # Trigger when a pull request is made to the main branch
 
 jobs:
   build:
@@ -28,7 +27,7 @@ jobs:
     - name: Set up Java
       uses: actions/setup-java@v1  # Set up Java environment
       with:
-        java-version: '17.x'  # Use Java version 17.x
+        java-version: '12.x'  # Use Java version 12.x
 
     - name: Set up Flutter
       uses: subosito/flutter-action@v2  # Set up Flutter environment
