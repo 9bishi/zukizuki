@@ -8,6 +8,51 @@ class VideoProvider with ChangeNotifier {
   List<dynamic> videos = [];
   Map<String, dynamic> videoDetails = {};
 
+  // 获取视频文件的 URL
+  Future<String> fetchVideoFile(int resourceId, String quality) async {
+    final url = Uri.parse(
+        'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
+
+    try {
+      final response = await http.get(url);
+
+      // 检查请求是否成功
+      if (response.statusCode == 200) {
+        final m3u8FileContent = response.body;
+
+        // 解析返回的 M3U8 文件（视频切片）
+        return m3u8FileContent;  // 返回 M3U8 文件的内容（切片信息）
+      } else {
+        throw Exception('Failed to load video file');
+      }
+    } catch (error) {
+      print('Error fetching video file: $error');
+      return '';
+    }
+  }
+
+  // 获取视频切片
+  Future<String> fetchVideoSlice(String fileKey) async {
+    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/slice/文件?key=$fileKey');
+
+    try {
+      final response = await http.get(url);
+
+      // 检查请求是否成功
+      if (response.statusCode == 200) {
+        final videoSliceContent = response.body;
+
+        // 处理视频切片内容，返回适当的结果
+        return videoSliceContent;
+      } else {
+        throw Exception('Failed to load video slice');
+      }
+    } catch (error) {
+      print('Error fetching video slice: $error');
+      return '';
+    }
+  }
+
   // 获取热门视频列表
   Future<void> fetchVideos() async {
     final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getHotVideo?page=1&pageSize=30');
@@ -39,18 +84,5 @@ class VideoProvider with ChangeNotifier {
       print('Error fetching video details: $error');
     }
     return videoDetails;
-  }
-
-  // 获取视频文件 URL
-  Future<String> fetchVideoFileUrl(int resourceId) async {
-    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=854x480_900k');
-    try {
-      final response = await http.get(url);
-      final data = response.body;  // 返回视频文件信息
-      return data;  // 返回视频文件的 URL
-    } catch (error) {
-      print('Error fetching video file: $error');
-      return '';
-    }
   }
 }
