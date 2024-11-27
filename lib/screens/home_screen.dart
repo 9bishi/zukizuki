@@ -4,36 +4,40 @@ import '../providers/video_provider.dart';
 import '../utils/utils.dart';
 import 'video_detail_screen.dart';
 
-class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+class HomeScreen extends StatefulWidget {
+  @override
+  _HomeScreenState createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 在页面初始化时获取视频列表
+    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
+    videoProvider.fetchVideos();
+  }
 
   @override
   Widget build(BuildContext context) {
     final videoProvider = Provider.of<VideoProvider>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Hot Videos'),
-      ),
+      appBar: AppBar(title: const Text('Video List')),
       body: videoProvider.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : videoProvider.videos.isEmpty
-              ? const Center(child: Text('No videos available'))
+              ? Center(child: Text('No videos found'))
               : ListView.builder(
                   itemCount: videoProvider.videos.length,
                   itemBuilder: (context, index) {
                     final video = videoProvider.videos[index];
                     return ListTile(
-                      title: Text(video['title'] ?? 'No Title'),
-                      subtitle: Text(video['desc'] ?? 'No Description'),
-                      leading: Image.network(
-                        getImageUrl(video['cover'] ?? ''),
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                      ),
+                      title: Text(video['title']),
+                      subtitle: Text(video['desc']),
+                      leading: Image.network(video['cover']),
                       onTap: () {
-                        // 点击进入视频详情页
+                        // Navigate to video detail screen
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -44,11 +48,21 @@ class HomeScreen extends StatelessWidget {
                     );
                   },
                 ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          videoProvider.fetchVideos();
-        },
-        child: const Icon(Icons.refresh),
+    );
+  }
+}
+
+class VideoDetailScreen extends StatelessWidget {
+  final int videoId;
+
+  VideoDetailScreen({required this.videoId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text('Video Details')),
+      body: Center(
+        child: Text('Video ID: $videoId'),
       ),
     );
   }
