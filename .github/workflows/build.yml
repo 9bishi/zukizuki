@@ -3,12 +3,11 @@ name: Dart CI
 on:
   push:
     branches: 
-      - main  # Trigger when code is pushed to the main branch
+      - main
       : 
   pull_request:
     branches:
       - main 
-  workflow_dispatch: 
 
 jobs:
   build:
