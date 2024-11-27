@@ -40,7 +40,7 @@ jobs:
 
     - name: Build Android APK
       run: |
-        flutter build apk --release -v  # Build the release version of the APK
+        flutter build apk # Build the release version of the APK
         mv ./build/app/outputs/apk/release/* ./web  # Move the APK to web directory
 
     - name: Deploy APK Artifact
