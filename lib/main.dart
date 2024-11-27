@@ -1,28 +1,26 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'providers/video_provider.dart';
 import 'screens/home_screen.dart';
+import 'providers/video_provider.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => VideoProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Video App',
-      home: const HomeScreen(),
+    return ChangeNotifierProvider(
+      create: (context) => VideoProvider(),
+      child: MaterialApp(
+        title: '视频播放',
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: const HomeScreen(),  // 使用 const 构造函数
+      ),
     );
   }
 }
