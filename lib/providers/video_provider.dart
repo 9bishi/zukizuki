@@ -4,14 +4,41 @@ import 'dart:convert';
 import '../api/video_api.dart';
 
 class VideoProvider with ChangeNotifier {
-  /// 获取视频文件（M3U8 格式）
+  bool _isLoading = false;
+  List<dynamic> _videos = [];
+
+  bool get isLoading => _isLoading;
+  List<dynamic> get videos => _videos;
+
+  /// 获取视频列表
+  Future<void> fetchVideos() async {
+    _isLoading = true;
+    notifyListeners();
+
+    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getHotVideo?page=1&pageSize=10');
+    try {
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        _videos = data['data']['videos'];
+      } else {
+        throw Exception('Failed to load videos');
+      }
+    } catch (error) {
+      print('Error fetching videos: $error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// 获取视频文件
   Future<String> fetchVideoFile(int resourceId, String quality) async {
     final url = Uri.parse(
         'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
 
     try {
       final response = await http.get(url);
-
       if (response.statusCode == 200) {
         return response.body; // 返回 M3U8 文件内容
       } else {
@@ -27,28 +54,5 @@ class VideoProvider with ChangeNotifier {
   List<String> parseM3U8(String m3u8Content) {
     final lines = m3u8Content.split('\n');
     return lines.where((line) => line.endsWith('.ts')).toList();
-  }
-
-  /// 获取视频切片的完整 URL
-  String getSliceUrl(String fileName) {
-    final baseUrl = 'https://api.zukizuki.org/api/v1/video/slice';
-    return '$baseUrl/$fileName';
-  }
-
-  /// 示例方法：获取第一个视频切片 URL
-  Future<String?> fetchFirstSliceUrl(int resourceId, String quality) async {
-    try {
-      final m3u8Content = await fetchVideoFile(resourceId, quality);
-      final sliceFiles = parseM3U8(m3u8Content);
-
-      if (sliceFiles.isNotEmpty) {
-        return getSliceUrl(sliceFiles.first); // 返回第一个切片的完整 URL
-      } else {
-        throw Exception('No slice files found in M3U8 content.');
-      }
-    } catch (error) {
-      print('Error fetching first slice URL: $error');
-      return null;
-    }
   }
 }
