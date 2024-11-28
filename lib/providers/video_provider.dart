@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../api/video_api.dart';
+
 class VideoProvider extends ChangeNotifier {
   List<dynamic> _videos = [];
   bool _isLoading = false;
@@ -9,25 +10,29 @@ class VideoProvider extends ChangeNotifier {
   List<dynamic> get videos => _videos;
   bool get isLoading => _isLoading;
 
-  // 获取视频列表
+  /// 获取视频列表
   Future<void> fetchVideos() async {
     _isLoading = true;
     notifyListeners();
 
-    final response = await http.get(Uri.parse('https://api.zukizuki.org/api/v1/video/getHotVideo?page=1&pageSize=10'));
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      _videos = data['data']['videos'];
-    } else {
-      throw Exception('Failed to load videos');
+    try {
+      final response = await http.get(Uri.parse(
+          'https://api.zukizuki.org/api/v1/video/getHotVideo?page=1&pageSize=10'));
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _videos = data['data']['videos'] ?? [];
+      } else {
+        throw Exception('Failed to load videos');
+      }
+    } catch (error) {
+      print('Error fetching videos: $error');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
-class VideoProvider {
-  /// Fetch the M3U8 content for a video resource
+  /// 获取 M3U8 文件内容
   Future<String> fetchVideoFile(int resourceId, String quality) async {
     final url = Uri.parse(
         'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
