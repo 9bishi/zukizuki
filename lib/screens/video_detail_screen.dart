@@ -3,23 +3,20 @@ import 'package:provider/provider.dart';
 import 'package:video_player/video_player.dart';
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
+import 'package:chewie/chewie.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
-  final int resourceId;
-  final String quality;
+  final String videoUrl; // 视频 URL (M3U8)
 
-  const VideoPlayerScreen({
-    Key? key,
-    required this.resourceId,
-    required this.quality,
-  }) : super(key: key);
+  const VideoPlayerScreen({Key? key, required this.videoUrl}) : super(key: key);
 
   @override
-  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
+  _VideoPlayerScreenState createState() => _VideoPlayerScreenState();
 }
 
 class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
-  BetterPlayerController? _betterPlayerController;
+  late VideoPlayerController _videoPlayerController;
+  late ChewieController _chewieController;
 
   @override
   void initState() {
@@ -28,47 +25,46 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   }
 
   Future<void> _initializePlayer() async {
-    final videoProvider = Provider.of<VideoProvider>(context, listen: false);
-    final m3u8Content =
-        await videoProvider.fetchVideoFile(widget.resourceId, widget.quality);
+    // 使用网络 URL 加载视频
+    _videoPlayerController = VideoPlayerController.network(widget.videoUrl);
 
-    if (m3u8Content.isNotEmpty) {
-      // Set up the BetterPlayer data source
-      final betterPlayerDataSource = BetterPlayerDataSource(
-        BetterPlayerDataSourceType.network,
-        'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=${widget.resourceId}&quality=${widget.quality}',
-      );
+    await _videoPlayerController.initialize();
 
-      _betterPlayerController = BetterPlayerController(
-        BetterPlayerConfiguration(
-          aspectRatio: 16 / 9,
-          autoPlay: true,
-          looping: false,
-        ),
-        betterPlayerDataSource: betterPlayerDataSource,
-      );
+    // 配置 ChewieController 来控制视频的播放
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController,
+      autoPlay: true, // 自动播放
+      looping: true,  // 循环播放
+      allowFullScreen: true, // 允许全屏播放
+      allowPlaybackSpeedMenu: true, // 允许选择播放速度
+    );
 
-      setState(() {});
-    } else {
-      print('Failed to load M3U8 content.');
-    }
+    setState(() {}); // 刷新页面
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_videoPlayerController.value.isInitialized) {
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()), // 显示加载中的动画
+      );
+    }
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Video Player"),
+      appBar: AppBar(title: const Text("视频播放器")),
+      body: Center(
+        child: Chewie(
+          controller: _chewieController,
+        ),
       ),
-      body: _betterPlayerController != null
-          ? BetterPlayer(controller: _betterPlayerController!)
-          : const Center(child: CircularProgressIndicator()),
     );
   }
 
   @override
   void dispose() {
-    _betterPlayerController?.dispose();
     super.dispose();
+    _videoPlayerController.dispose();
+    _chewieController.dispose();
   }
 }
+
