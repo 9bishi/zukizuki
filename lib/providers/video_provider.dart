@@ -26,15 +26,25 @@ class VideoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 获取视频文件内容
-  Future<String> fetchVideoFile(String resourceId, String quality) async {
-    final url = Uri.parse('https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
-    final response = await http.get(url);
+class VideoProvider {
+  /// Fetch the M3U8 content for a video resource
+  Future<String> fetchVideoFile(int resourceId, String quality) async {
+    final url = Uri.parse(
+        'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=$resourceId&quality=$quality');
 
-    if (response.statusCode == 200) {
-      return response.body;
-    } else {
-      throw Exception('Failed to fetch video file');
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final m3u8Content = response.body;
+        print('Fetched M3U8 Content: $m3u8Content');
+        return m3u8Content;
+      } else {
+        throw Exception('Failed to fetch video file');
+      }
+    } catch (error) {
+      print('Error fetching video file: $error');
+      return '';
     }
   }
 }
