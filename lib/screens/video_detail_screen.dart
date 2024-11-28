@@ -4,62 +4,71 @@ import 'package:video_player/video_player.dart';
 import '../providers/video_provider.dart';
 import '../utils/utils.dart';
 
-class VideoDetailScreen extends StatefulWidget {
-  final int videoId;
+class VideoPlayerScreen extends StatefulWidget {
+  final int resourceId;
+  final String quality;
 
-  const VideoDetailScreen({Key? key, required this.videoId}) : super(key: key);
+  const VideoPlayerScreen({
+    Key? key,
+    required this.resourceId,
+    required this.quality,
+  }) : super(key: key);
 
   @override
-  _VideoDetailScreenState createState() => _VideoDetailScreenState();
+  State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
 }
 
-class _VideoDetailScreenState extends State<VideoDetailScreen> {
-  late String m3u8Content;
+class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
+  BetterPlayerController? _betterPlayerController;
 
   @override
   void initState() {
     super.initState();
-    _loadM3U8();
+    _initializePlayer();
   }
 
-  // 模拟获取M3U8内容，这部分可以根据实际API返回调整
-  Future<void> _loadM3U8() async {
+  Future<void> _initializePlayer() async {
     final videoProvider = Provider.of<VideoProvider>(context, listen: false);
-    final resourceId = '123'; // 资源ID需要根据实际情况替换
-    final quality = '854x480_900k'; // 分辨率信息
+    final m3u8Content =
+        await videoProvider.fetchVideoFile(widget.resourceId, widget.quality);
 
-    final m3u8Data = await videoProvider.fetchVideoFile(resourceId, quality);
-    setState(() {
-      m3u8Content = m3u8Data;
-    });
-  }
+    if (m3u8Content.isNotEmpty) {
+      // Set up the BetterPlayer data source
+      final betterPlayerDataSource = BetterPlayerDataSource(
+        BetterPlayerDataSourceType.network,
+        'https://api.zukizuki.org/api/v1/video/getVideoFile?resourceId=${widget.resourceId}&quality=${widget.quality}',
+      );
 
-  // 解析M3U8文件并返回视频切片URL
-  List<String> parseM3U8(String m3u8Content) {
-    final lines = m3u8Content.split('\n');
-    return lines.where((line) => line.endsWith('.ts')).toList();
+      _betterPlayerController = BetterPlayerController(
+        BetterPlayerConfiguration(
+          aspectRatio: 16 / 9,
+          autoPlay: true,
+          looping: false,
+        ),
+        betterPlayerDataSource: betterPlayerDataSource,
+      );
+
+      setState(() {});
+    } else {
+      print('Failed to load M3U8 content.');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    if (m3u8Content.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    final tsUrls = parseM3U8(m3u8Content);
-
     return Scaffold(
-      appBar: AppBar(title: const Text('视频播放')),
-      body: ListView.builder(
-        itemCount: tsUrls.length,
-        itemBuilder: (context, index) {
-          return ListTile(
-            title: Text(tsUrls[index]),
-          );
-        },
+      appBar: AppBar(
+        title: const Text("Video Player"),
       ),
+      body: _betterPlayerController != null
+          ? BetterPlayer(controller: _betterPlayerController!)
+          : const Center(child: CircularProgressIndicator()),
     );
+  }
+
+  @override
+  void dispose() {
+    _betterPlayerController?.dispose();
+    super.dispose();
   }
 }
