@@ -102,4 +102,3 @@ class VideoProvider with ChangeNotifier {
     return videoDetails;
   }
 }
-
