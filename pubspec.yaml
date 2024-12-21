@@ -33,7 +33,6 @@ dependencies:
     sdk: flutter
   provider: ^6.1.1
   http: ^1.1.0
-  carousel_slider: ^4.2.1
   video_player: ^2.8.1
   cached_network_image: ^3.3.1
 
